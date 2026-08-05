@@ -1,0 +1,29 @@
+# Binaries
+/bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binaries and coverage
+*.test
+*.out
+coverage.txt
+
+# Go build cache / vendor
+/vendor/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,9 @@
+go 1.26.5
+
+use (
+	./modules/chains/arc
+	./modules/contracts
+	./modules/mcp
+	./modules/platform
+	./sdk/go
+)
