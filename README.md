@@ -23,6 +23,16 @@ sdk/
 
 Cada blockchain suportada é um módulo Go independente em `modules/chains/`, implementando a interface `chainport.Adapter` definida em `modules/contracts`. Isso preserva o princípio *Blockchain Agnostic*: o `platform` nunca depende diretamente de um chain específico, apenas da porta compartilhada.
 
+## Documentação
+
+| Documento | Conteúdo |
+|---|---|
+| [CHARTER.md](CHARTER.md) | Visão, missão, princípios e pilares da plataforma |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Decisões técnicas: camadas, monorepo, MCP como client, DI |
+| [docs/implementation-plan.md](docs/implementation-plan.md) | Requisitos funcionais, épicos e tarefas por sprint |
+| [docs/tradeoffs.md](docs/tradeoffs.md) | Decision journal — o que foi escolhido e o que foi sacrificado |
+| [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | Como contribuir |
+
 ## Quick start
 
 Requer Go 1.26+.
