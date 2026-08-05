@@ -52,3 +52,10 @@ Registra decisões de arquitetura e escopo que tinham alternativas reais, e o qu
 - **Alternativas consideradas:** nenhuma capacidade explícita informada pelo usuário; poderia ter assumido tempo integral (~13-20 SP/semana).
 - **Sacrifício:** se a capacidade real for maior, os sprints vão parecer subdimensionados e podem ser combinados; se for menor, vão estourar.
 - **Reavaliar quando:** após os 2 primeiros sprints reais executados — ajustar a capacidade com base na velocidade observada.
+
+## TR-007: Cliente RPC da ARC via go-ethereum e geração local de chave, em vez de Circle Wallets
+- **Fase:** build
+- **Decisão:** `modules/chains/arc/rpc` usa `github.com/ethereum/go-ethereum` (`ethclient`, `core/types`, pacote `ethereum`) para falar com o JSON-RPC padrão da Arc, e `CreateWallet` vai gerar um par de chaves secp256k1 localmente em vez de usar o produto Circle Wallets (custódia gerenciada pela Circle, recomendado na doc oficial da Arc).
+- **Alternativas consideradas:** cliente JSON-RPC feito à mão (`net/http` + `encoding/json`) sem depender de `go-ethereum`; usar Circle Wallets para custódia de chaves.
+- **Sacrifício:** `go-ethereum` é uma dependência pesada (dezenas de pacotes transitivos, incluindo criptografia e otel) só para falar HTTP JSON-RPC e assinar transações. Em troca, evita reimplementar assinatura EIP-155/RLP à mão — risco alto de acertar errado em código que mexe com chaves privadas. Não usar Circle Wallets significa que o Aureon é responsável por proteger as chaves geradas (custódia própria), não a Circle.
+- **Reavaliar quando:** se o tamanho do binário/build da `chains/arc` se tornar um problema real; ou se, ao adicionar a segunda chain EVM, ficar claro que vale a pena extrair um pacote `chains/evmshared` para não duplicar o wrapper do go-ethereum por módulo.

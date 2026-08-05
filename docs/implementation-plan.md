@@ -119,8 +119,9 @@ Arquivos/diretórios já existentes (bootstrap) marcados ✅; a criar marcados �
 | `modules/platform/internal/infra/config/config.go` | E1 | ✅ |
 | `modules/platform/cmd/gateway/main.go` | E1 | ✅ |
 | `modules/chains/arc/adapter.go` | E2/E3 | ✅ (stubs, sem RPC real) |
-| `modules/chains/arc/rpc/client.go` | E2/E3 | ⬜ Sprint 1 |
-| `modules/chains/arc/rpc/client_test.go` | E2/E3 | ⬜ Sprint 1 |
+| `modules/chains/arc/rpc/client.go` | E2/E3 | ✅ Sprint 1 |
+| `modules/chains/arc/rpc/client_test.go` | E2/E3 | ✅ Sprint 1 |
+| `docs/networks/arc.md` | E2/E3 | ✅ Sprint 1 |
 | `modules/platform/internal/usecase/transaction.go` | E3 | ⬜ Sprint 3 |
 | `modules/platform/internal/domain/identity.go` | E1 | ⬜ Sprint 4 |
 | `modules/platform/internal/adapter/rest/middleware/auth.go` | E1 | ⬜ Sprint 4 |
@@ -141,13 +142,15 @@ Arquivos/diretórios já existentes (bootstrap) marcados ✅; a criar marcados �
 
 Monorepo `go.work`, módulo `contracts` (porta `chainport.Adapter`), `platform` com Gateway HTTP mínimo (`/health`, criação/consulta de wallet via use case), `chains/arc` com adapter stub (métodos retornam "not implemented"), `mcp` skeleton, `sdk/go` com client HTTP mínimo. Build, vet e smoke test validados. Charter, README, LICENSE e este conjunto de docs commitados.
 
-### Sprint 1 — Cliente RPC da ARC Network (8 SP)
+### Sprint 1 — Cliente RPC da ARC Network (8 SP) ✅ concluído
 
 | ID | Tarefa | Epic | FR | SP | Depende de | Critério de aceite |
 |---|---|---|---|---|---|---|
-| T-101 | Pesquisar e documentar a API RPC/HTTP da ARC Network (endpoints, autenticação, formatos) | E2 | FR-029 | 2 | — | Nota técnica em `docs/networks/arc.md` cobrindo endpoints necessários para wallet/balance/tx/gas |
-| T-102 | Implementar cliente HTTP/RPC genérico em `modules/chains/arc/rpc` | E2/E3 | FR-029 | 3 | T-101 | Cliente compila, expõe métodos tipados, trata erros HTTP/timeout |
-| T-103 | Testes do cliente RPC com `httptest` (mock do servidor ARC) | E2/E3 | FR-029 | 3 | T-102 | `go test ./...` cobre casos de sucesso e erro (timeout, 4xx, 5xx) |
+| T-101 | Pesquisar e documentar a API RPC/HTTP da ARC Network (endpoints, autenticação, formatos) | E2 | FR-029 | 2 | — | ✅ Nota técnica em [`docs/networks/arc.md`](networks/arc.md): Arc é EVM-compatível (JSON-RPC `eth_*`), chain ID `5042002` (testnet), gas nativo em USDC, RPC configurável via `AUREON_ARC_RPC_URL` |
+| T-102 | Implementar cliente HTTP/RPC genérico em `modules/chains/arc/rpc` | E2/E3 | FR-029 | 3 | T-101 | ✅ `Client` (via `go-ethereum`/`ethclient`) expõe `ChainID`, `BalanceAt`, `EstimateGas`, `SendTransaction`; erros do transporte/upstream sempre encapsulados com `%w` |
+| T-103 | Testes do cliente RPC com `httptest` (mock do servidor ARC) | E2/E3 | FR-029 | 3 | T-102 | ✅ `go test ./...` cobre `ChainID`, `BalanceAt` (sucesso e erro upstream), `EstimateGas` (sucesso e erro upstream) |
+
+Decisão de dependência (go-ethereum, geração local de chave) registrada em [TR-007](tradeoffs.md#tr-007-cliente-rpc-da-arc-via-go-ethereum-e-geração-local-de-chave-em-vez-de-circle-wallets).
 
 ### Sprint 2 — Wallet API real (8 SP)
 
