@@ -133,9 +133,11 @@ Arquivos/diretórios já existentes (bootstrap) marcados ✅; a criar marcados �
 | `modules/platform/internal/usecase/apikey.go` | E1 | ✅ Sprint 4 |
 | `modules/platform/internal/infra/apikeystore/memory.go` | E1 | ✅ Sprint 4 (interino — ver TR-009) |
 | `modules/platform/internal/adapter/rest/apikey.go` | E1 | ✅ Sprint 4 |
-| `modules/platform/internal/adapter/repository/` (interfaces) | E4 | ⬜ Sprint 5 |
-| `modules/platform/internal/adapter/repository/postgres/` | E4 | ⬜ Sprint 5 |
-| `modules/platform/migrations/` | E4 | ⬜ Sprint 5 |
+| `modules/platform/internal/infra/keystore/postgres.go` | E4 | ✅ Sprint 5 (Postgres real, não `adapter/repository/` como planejado originalmente — ver nota abaixo) |
+| `modules/platform/internal/infra/apikeystore/postgres.go` | E4 | ✅ Sprint 5 |
+| `modules/platform/internal/infra/db/db.go` (conexão + runner de migrações) | E4 | ✅ Sprint 5 |
+| `modules/platform/migrations/` (`.sql` + `go:embed`) | E4 | ✅ Sprint 5 |
+| `docker-compose.yml` (Postgres local, dev only) | E4 | ✅ Sprint 5 |
 | `.github/workflows/ci.yml` | E4 | ⬜ Sprint 6 |
 | `api/openapi.yaml` | E5 | ⬜ Sprint 7 |
 | `modules/cli/` (novo módulo, `cmd/aureon`) | E5 | ⬜ Sprint 8 |
@@ -188,13 +190,19 @@ Decisão de custódia (KeyStore custodial, em memória por ora) registrada em [T
 
 Decisões registradas em [TR-009](tradeoffs.md#tr-009-api-keys--hash-sha-256-não-bcryptargon2-storage-em-memória-emissão-sem-autenticação-prévia): hash SHA-256 (correto para tokens de alta entropia, não senha), storage em memória (mesmo padrão do TR-008), e `POST /v1/apikeys` propositalmente público por enquanto — **isso precisa mudar antes de qualquer deploy real**.
 
-### Sprint 5 — Persistência (8 SP)
+### Sprint 5 — Persistência (8 SP) ✅ concluído
 
 | ID | Tarefa | Epic | FR | SP | Depende de | Critério de aceite |
 |---|---|---|---|---|---|---|
-| T-111 | Definir interfaces de repositório (`Store`) para Identity/API Keys, desacopladas de storage concreto | E4 | — | 2 | T-108 | Interfaces em `internal/usecase` ou pacote `port`, sem dependência de driver de DB |
-| T-112 | Implementar repositório Postgres + migrações | E4 | — | 5 | T-111 | `make test` sobe Postgres via testcontainers (ou docker-compose) e valida CRUD |
-| T-113 | Configuração de conexão via env (`AUREON_DATABASE_URL`) | E4 | — | 1 | T-112 | Gateway falha rápido e com mensagem clara se a env estiver ausente/incorreta |
+| T-111 | Definir interfaces de repositório (`Store`) para Identity/API Keys, desacopladas de storage concreto | E4 | — | 2 | T-108 | ✅ `usecase.APIKeyStore` (já existia desde a Sprint 4) e `chainport.KeyStore` — ambas sem dependência de driver de DB |
+| T-112 | Implementar repositório Postgres + migrações | E4 | — | 5 | T-111 | ✅ `infra/keystore.Postgres` (AES-256-GCM em repouso) e `infra/apikeystore.Postgres`; migrações em `modules/platform/migrations/` (embutidas via `go:embed`, aplicadas automaticamente no boot via `golang-migrate`); testes de integração contra Postgres real (`TEST_DATABASE_URL`, gated/skip se ausente) |
+| T-113 | Configuração de conexão via env (`AUREON_DATABASE_URL`) | E4 | — | 1 | T-112 | ✅ `AUREON_DATABASE_URL` e `AUREON_KEYSTORE_ENCRYPTION_KEY` obrigatórias — Gateway falha rápido com mensagem clara se ausentes/inválidas (testado) |
+
+Implementações em memória (`keystore.Memory`, `apikeystore.Memory`) mantidas apenas para testes unitários — o Gateway não as usa mais. Decisão da chave de criptografia via env var (não KMS) registrada em [TR-010](tradeoffs.md#tr-010-criptografia-em-repouso-com-chave-de-aplicação-aes-256-gcm-em-vez-de-kms), com ressalva explícita: **não usar em deploy com fundos reais** até virar KMS.
+
+**Nota de estrutura:** o plano original previa um pacote genérico `internal/adapter/repository/postgres/`. Na implementação, ficou mais idiomático manter `Postgres` no mesmo pacote que seu par `Memory` (`infra/keystore/{memory,postgres}.go`, `infra/apikeystore/{memory,postgres}.go`) — mesma interface, implementações alternativas lado a lado, sem introduzir uma camada genérica extra.
+
+**Validado end-to-end:** wallet criada e API key emitida num processo do Gateway sobrevivem a matar o processo e subir um binário novo — saldo e `estimateGas` funcionaram no segundo processo usando a mesma chave privada recuperada (descriptografada) do Postgres.
 
 ### Sprint 6 — Observabilidade, testes de integração e CI (8 SP)
 

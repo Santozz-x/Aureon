@@ -42,3 +42,11 @@ run-gateway:
 .PHONY: run-mcp
 run-mcp:
 	cd modules/mcp && go run ./cmd/mcp-server
+
+.PHONY: db-up
+db-up:
+	docker compose up -d postgres
+
+.PHONY: db-down
+db-down:
+	docker compose down

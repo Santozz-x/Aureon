@@ -17,13 +17,19 @@ import (
 	"github.com/jeielsantos/aureon/modules/platform/internal/adapter/rest/middleware"
 	"github.com/jeielsantos/aureon/modules/platform/internal/infra/apikeystore"
 	"github.com/jeielsantos/aureon/modules/platform/internal/infra/config"
+	"github.com/jeielsantos/aureon/modules/platform/internal/infra/db"
 	"github.com/jeielsantos/aureon/modules/platform/internal/infra/keystore"
 	"github.com/jeielsantos/aureon/modules/platform/internal/usecase"
 )
 
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	cfg := config.Load()
+
+	cfg, err := config.Load()
+	if err != nil {
+		logger.Error("invalid configuration", "error", err)
+		os.Exit(1)
+	}
 
 	bootCtx, cancelBoot := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancelBoot()
@@ -35,7 +41,23 @@ func main() {
 	}
 	defer arcClient.Close()
 
-	keys := keystore.NewMemory()
+	sqlDB, err := db.Open(bootCtx, cfg.DatabaseURL)
+	if err != nil {
+		logger.Error("failed to connect to database", "error", err)
+		os.Exit(1)
+	}
+	defer sqlDB.Close()
+
+	if err := db.Migrate(sqlDB); err != nil {
+		logger.Error("failed to apply database migrations", "error", err)
+		os.Exit(1)
+	}
+
+	keys, err := keystore.NewPostgres(sqlDB, cfg.KeystoreEncryptionKey)
+	if err != nil {
+		logger.Error("failed to init key store", "error", err)
+		os.Exit(1)
+	}
 
 	adapters := map[chainport.Network]chainport.Adapter{
 		chainport.Network("arc"): arc.NewAdapter(arcClient, keys),
@@ -47,7 +69,7 @@ func main() {
 	transactionService := usecase.NewTransactionService(adapters)
 	transactionHandler := rest.NewTransactionHandler(transactionService)
 
-	apiKeyService := usecase.NewAPIKeyService(apikeystore.NewMemory())
+	apiKeyService := usecase.NewAPIKeyService(apikeystore.NewPostgres(sqlDB))
 	apiKeyHandler := rest.NewAPIKeyHandler(apiKeyService)
 	protect := middleware.RequireAPIKey(apiKeyService)
 
