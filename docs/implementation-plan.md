@@ -128,9 +128,11 @@ Arquivos/diretórios já existentes (bootstrap) marcados ✅; a criar marcados �
 | `modules/platform/internal/usecase/registry.go` (resolver de adapter compartilhado) | E2/E3 | ✅ Sprint 3 |
 | `modules/platform/internal/adapter/rest/transaction.go` | E3 | ✅ Sprint 3 |
 | `modules/chains/arc/rpc/client.go` (`PendingNonceAt`, `SuggestGasPrice`) | E3 | ✅ Sprint 3 |
-| `modules/platform/internal/domain/identity.go` | E1 | ⬜ Sprint 4 |
-| `modules/platform/internal/adapter/rest/middleware/auth.go` | E1 | ⬜ Sprint 4 |
-| `modules/platform/internal/usecase/apikey.go` | E1 | ⬜ Sprint 4 |
+| `modules/platform/internal/domain/identity.go` | E1 | ✅ Sprint 4 |
+| `modules/platform/internal/adapter/rest/middleware/auth.go` | E1 | ✅ Sprint 4 |
+| `modules/platform/internal/usecase/apikey.go` | E1 | ✅ Sprint 4 |
+| `modules/platform/internal/infra/apikeystore/memory.go` | E1 | ✅ Sprint 4 (interino — ver TR-009) |
+| `modules/platform/internal/adapter/rest/apikey.go` | E1 | ✅ Sprint 4 |
 | `modules/platform/internal/adapter/repository/` (interfaces) | E4 | ⬜ Sprint 5 |
 | `modules/platform/internal/adapter/repository/postgres/` | E4 | ⬜ Sprint 5 |
 | `modules/platform/migrations/` | E4 | ⬜ Sprint 5 |
@@ -176,13 +178,15 @@ Decisão de custódia (KeyStore custodial, em memória por ora) registrada em [T
 
 **Nota para a próxima sessão de testes manuais:** para validar um `SendTransaction` com sucesso (não só a rejeição por saldo), a carteira `from` precisa de USDC de testnet — usar o faucet oficial da Arc (ver [docs/networks/arc.md](networks/arc.md)) antes de repetir o smoke test.
 
-### Sprint 4 — Identity, Auth e API Keys (8 SP)
+### Sprint 4 — Identity, Auth e API Keys (8 SP) ✅ concluído
 
 | ID | Tarefa | Epic | FR | SP | Depende de | Critério de aceite |
 |---|---|---|---|---|---|---|
-| T-108 | Modelar domínio de Identity (conta de desenvolvedor) e API Key (`internal/domain/identity.go`) | E1 | FR-008, FR-011 | 2 | — | Tipos definidos, sem persistência ainda |
-| T-109 | Middleware de autenticação por API Key no Gateway | E1 | FR-009 | 3 | T-108 | Requisição sem header `Authorization` válido recebe `401`; com chave válida, passa |
-| T-110 | Endpoint de emissão/revogação de API Keys (storage em memória por ora) | E1 | FR-010, FR-011 | 3 | T-108 | `POST /v1/apikeys` cria, `DELETE /v1/apikeys/{id}` revoga; chave revogada falha no middleware |
+| T-108 | Modelar domínio de Identity (conta de desenvolvedor) e API Key (`internal/domain/identity.go`) | E1 | FR-008, FR-011 | 2 | — | ✅ `domain.Account`, `domain.APIKey` (guarda só `SecretHash`, nunca o segredo em texto plano) |
+| T-109 | Middleware de autenticação por API Key no Gateway | E1 | FR-009 | 3 | T-108 | ✅ `middleware.RequireAPIKey` — validado manualmente: sem header → `401`, header inválido → `401`, chave válida → `200` e chega no handler |
+| T-110 | Endpoint de emissão/revogação de API Keys (storage em memória por ora) | E1 | FR-010, FR-011 | 3 | T-108 | ✅ `POST /v1/apikeys` cria (retorna o segredo uma única vez), `DELETE /v1/apikeys/{id}` revoga; validado manualmente que a chave revogada falha no middleware (`401`) |
+
+Decisões registradas em [TR-009](tradeoffs.md#tr-009-api-keys--hash-sha-256-não-bcryptargon2-storage-em-memória-emissão-sem-autenticação-prévia): hash SHA-256 (correto para tokens de alta entropia, não senha), storage em memória (mesmo padrão do TR-008), e `POST /v1/apikeys` propositalmente público por enquanto — **isso precisa mudar antes de qualquer deploy real**.
 
 ### Sprint 5 — Persistência (8 SP)
 

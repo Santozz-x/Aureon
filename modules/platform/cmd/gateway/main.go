@@ -14,6 +14,8 @@ import (
 	arcrpc "github.com/jeielsantos/aureon/modules/chains/arc/rpc"
 	chainport "github.com/jeielsantos/aureon/modules/contracts"
 	"github.com/jeielsantos/aureon/modules/platform/internal/adapter/rest"
+	"github.com/jeielsantos/aureon/modules/platform/internal/adapter/rest/middleware"
+	"github.com/jeielsantos/aureon/modules/platform/internal/infra/apikeystore"
 	"github.com/jeielsantos/aureon/modules/platform/internal/infra/config"
 	"github.com/jeielsantos/aureon/modules/platform/internal/infra/keystore"
 	"github.com/jeielsantos/aureon/modules/platform/internal/usecase"
@@ -45,7 +47,11 @@ func main() {
 	transactionService := usecase.NewTransactionService(adapters)
 	transactionHandler := rest.NewTransactionHandler(transactionService)
 
-	router := rest.NewRouter(walletHandler, transactionHandler)
+	apiKeyService := usecase.NewAPIKeyService(apikeystore.NewMemory())
+	apiKeyHandler := rest.NewAPIKeyHandler(apiKeyService)
+	protect := middleware.RequireAPIKey(apiKeyService)
+
+	router := rest.NewRouter(walletHandler, transactionHandler, apiKeyHandler, protect)
 
 	srv := &http.Server{
 		Addr:    cfg.HTTPAddr,
