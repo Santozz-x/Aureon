@@ -166,3 +166,52 @@ func TestClient_EstimateGas_UpstreamError(t *testing.T) {
 		t.Fatal("expected error, got nil")
 	}
 }
+
+func TestClient_PendingNonceAt(t *testing.T) {
+	srv := newMockServer(t, func(method string) (interface{}, *rpcError) {
+		if method != "eth_getTransactionCount" {
+			return nil, &rpcError{Code: -32601, Message: "method not found: " + method}
+		}
+		return fmt.Sprintf("0x%x", 7), nil
+	})
+	defer srv.Close()
+
+	client, err := Dial(context.Background(), srv.URL)
+	if err != nil {
+		t.Fatalf("Dial: %v", err)
+	}
+	defer client.Close()
+
+	nonce, err := client.PendingNonceAt(context.Background(), common.HexToAddress("0x000000000000000000000000000000000000A0"))
+	if err != nil {
+		t.Fatalf("PendingNonceAt: %v", err)
+	}
+	if nonce != 7 {
+		t.Fatalf("PendingNonceAt = %d, want 7", nonce)
+	}
+}
+
+func TestClient_SuggestGasPrice(t *testing.T) {
+	want := big.NewInt(1_000_000_000)
+	srv := newMockServer(t, func(method string) (interface{}, *rpcError) {
+		if method != "eth_gasPrice" {
+			return nil, &rpcError{Code: -32601, Message: "method not found: " + method}
+		}
+		return fmt.Sprintf("0x%x", want), nil
+	})
+	defer srv.Close()
+
+	client, err := Dial(context.Background(), srv.URL)
+	if err != nil {
+		t.Fatalf("Dial: %v", err)
+	}
+	defer client.Close()
+
+	price, err := client.SuggestGasPrice(context.Background())
+	if err != nil {
+		t.Fatalf("SuggestGasPrice: %v", err)
+	}
+	if price.Cmp(want) != 0 {
+		t.Fatalf("SuggestGasPrice = %s, want %s", price, want)
+	}
+}

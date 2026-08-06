@@ -53,6 +53,22 @@ func (c *Client) EstimateGas(ctx context.Context, msg ethereum.CallMsg) (uint64,
 	return gas, nil
 }
 
+func (c *Client) PendingNonceAt(ctx context.Context, address common.Address) (uint64, error) {
+	nonce, err := c.eth.PendingNonceAt(ctx, address)
+	if err != nil {
+		return 0, fmt.Errorf("rpc: pending nonce at %s: %w", address, err)
+	}
+	return nonce, nil
+}
+
+func (c *Client) SuggestGasPrice(ctx context.Context) (*big.Int, error) {
+	price, err := c.eth.SuggestGasPrice(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("rpc: suggest gas price: %w", err)
+	}
+	return price, nil
+}
+
 func (c *Client) SendTransaction(ctx context.Context, tx *types.Transaction) error {
 	if err := c.eth.SendTransaction(ctx, tx); err != nil {
 		return fmt.Errorf("rpc: send transaction: %w", err)

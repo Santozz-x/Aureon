@@ -41,7 +41,11 @@ func main() {
 
 	walletService := usecase.NewWalletService(adapters)
 	walletHandler := rest.NewWalletHandler(walletService)
-	router := rest.NewRouter(walletHandler)
+
+	transactionService := usecase.NewTransactionService(adapters)
+	transactionHandler := rest.NewTransactionHandler(transactionService)
+
+	router := rest.NewRouter(walletHandler, transactionHandler)
 
 	srv := &http.Server{
 		Addr:    cfg.HTTPAddr,

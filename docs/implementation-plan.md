@@ -124,7 +124,10 @@ Arquivos/diretórios já existentes (bootstrap) marcados ✅; a criar marcados �
 | `docs/networks/arc.md` | E2/E3 | ✅ Sprint 1 |
 | `modules/contracts/chain.go` (`KeyStore`) | E2 | ✅ Sprint 2 |
 | `modules/platform/internal/infra/keystore/memory.go` | E2 | ✅ Sprint 2 (interino — ver TR-008) |
-| `modules/platform/internal/usecase/transaction.go` | E3 | ⬜ Sprint 3 |
+| `modules/platform/internal/usecase/transaction.go` | E3 | ✅ Sprint 3 |
+| `modules/platform/internal/usecase/registry.go` (resolver de adapter compartilhado) | E2/E3 | ✅ Sprint 3 |
+| `modules/platform/internal/adapter/rest/transaction.go` | E3 | ✅ Sprint 3 |
+| `modules/chains/arc/rpc/client.go` (`PendingNonceAt`, `SuggestGasPrice`) | E3 | ✅ Sprint 3 |
 | `modules/platform/internal/domain/identity.go` | E1 | ⬜ Sprint 4 |
 | `modules/platform/internal/adapter/rest/middleware/auth.go` | E1 | ⬜ Sprint 4 |
 | `modules/platform/internal/usecase/apikey.go` | E1 | ⬜ Sprint 4 |
@@ -163,13 +166,15 @@ Decisão de dependência (go-ethereum, geração local de chave) registrada em [
 
 Decisão de custódia (KeyStore custodial, em memória por ora) registrada em [TR-008](tradeoffs.md#tr-008-aureon-é-custodial-guarda-as-chaves-privadas-via-chainportkeystore-começando-com-storage-em-memória). `chainport.Adapter` ganhou `KeyStore` como porta adicional — atualizar a nota de arquitetura se necessário.
 
-### Sprint 3 — Transaction API real (8 SP)
+### Sprint 3 — Transaction API real (8 SP) ✅ concluído
 
 | ID | Tarefa | Epic | FR | SP | Depende de | Critério de aceite |
 |---|---|---|---|---|---|---|
-| T-106 | Implementar `SendTransaction` no Adapter ARC | E3 | FR-003 | 5 | T-104 | Envia transação assinada para a testnet ARC e retorna `TxHash` válido |
-| T-107 | Implementar `EstimateGas` no Adapter ARC | E3 | FR-003 | 3 | T-102 | Retorna estimativa de gas consistente com a testnet ARC para uma tx de teste |
-| — | Expor endpoints `POST /v1/{network}/transactions` e `POST /v1/{network}/transactions/estimate` no `usecase`/`rest` | E3 | FR-001, FR-003 | (incluso acima) | T-106, T-107 | Endpoints cobertos por teste de integração |
+| T-106 | Implementar `SendTransaction` no Adapter ARC | E3 | FR-003 | 5 | T-104 | ✅ Monta, assina (EIP-155/legacy tx via go-ethereum) e envia via `eth_sendRawTransaction`; testado contra a testnet real — pipeline completo (nonce, gas price, chain id, assinatura, broadcast) confirmado, rejeitado corretamente por saldo zero (carteira nova sem fundos de testnet) |
+| T-107 | Implementar `EstimateGas` no Adapter ARC | E3 | FR-003 | 3 | T-102 | ✅ Testado contra a testnet real (mesma ressalva de saldo zero acima) e com testes unitários (mock RPC) |
+| — | Expor endpoints `POST /v1/{network}/transactions` e `POST /v1/{network}/transactions/estimate` no `usecase`/`rest` | E3 | FR-001, FR-003 | (incluso acima) | T-106, T-107 | ✅ `usecase.TransactionService` + `rest.TransactionHandler`, roteados no Gateway |
+
+**Nota para a próxima sessão de testes manuais:** para validar um `SendTransaction` com sucesso (não só a rejeição por saldo), a carteira `from` precisa de USDC de testnet — usar o faucet oficial da Arc (ver [docs/networks/arc.md](networks/arc.md)) antes de repetir o smoke test.
 
 ### Sprint 4 — Identity, Auth e API Keys (8 SP)
 

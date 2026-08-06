@@ -92,21 +92,41 @@ type rpcRequest struct {
 	Method string          `json:"method"`
 }
 
+type rpcError struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+}
+
 type rpcResponse struct {
 	JSONRPC string          `json:"jsonrpc"`
 	ID      json.RawMessage `json:"id"`
 	Result  interface{}     `json:"result,omitempty"`
+	Error   *rpcError       `json:"error,omitempty"`
 }
 
-func newMockRPCServer(t *testing.T, result interface{}) *httptest.Server {
+// newMockRPCServer dispatches by JSON-RPC method name. responses maps a
+// method to either its result value, or an *rpcError to simulate an
+// upstream failure for that method.
+func newMockRPCServer(t *testing.T, responses map[string]interface{}) *httptest.Server {
 	t.Helper()
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req rpcRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			t.Fatalf("decode request: %v", err)
 		}
+
+		resp := rpcResponse{JSONRPC: "2.0", ID: req.ID}
+		value, ok := responses[req.Method]
+		if !ok {
+			resp.Error = &rpcError{Code: -32601, Message: "method not found: " + req.Method}
+		} else if rpcErr, ok := value.(*rpcError); ok {
+			resp.Error = rpcErr
+		} else {
+			resp.Result = value
+		}
+
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(rpcResponse{JSONRPC: "2.0", ID: req.ID, Result: result}); err != nil {
+		if err := json.NewEncoder(w).Encode(resp); err != nil {
 			t.Fatalf("encode response: %v", err)
 		}
 	}))
@@ -114,7 +134,9 @@ func newMockRPCServer(t *testing.T, result interface{}) *httptest.Server {
 
 func TestAdapter_GetBalance(t *testing.T) {
 	want := big.NewInt(42_000_000)
-	srv := newMockRPCServer(t, fmt.Sprintf("0x%x", want))
+	srv := newMockRPCServer(t, map[string]interface{}{
+		"eth_getBalance": fmt.Sprintf("0x%x", want),
+	})
 	defer srv.Close()
 
 	client, err := rpc.Dial(context.Background(), srv.URL)
@@ -143,5 +165,91 @@ func TestAdapter_GetBalance_InvalidAddress(t *testing.T) {
 	_, err := adapter.GetBalance(context.Background(), "not-an-address")
 	if err == nil {
 		t.Fatal("expected error for invalid address, got nil")
+	}
+}
+
+func TestAdapter_EstimateGas(t *testing.T) {
+	srv := newMockRPCServer(t, map[string]interface{}{
+		"eth_estimateGas": fmt.Sprintf("0x%x", 21000),
+	})
+	defer srv.Close()
+
+	client, err := rpc.Dial(context.Background(), srv.URL)
+	if err != nil {
+		t.Fatalf("Dial: %v", err)
+	}
+	defer client.Close()
+
+	adapter := NewAdapter(client, newFakeKeyStore())
+
+	gas, err := adapter.EstimateGas(context.Background(), chainport.Transaction{
+		From:  "0x1234567890123456789012345678901234567890",
+		To:    "0x0987654321098765432109876543210987654321",
+		Value: "1000",
+	})
+	if err != nil {
+		t.Fatalf("EstimateGas: %v", err)
+	}
+	if gas != 21000 {
+		t.Fatalf("EstimateGas = %d, want 21000", gas)
+	}
+}
+
+func TestAdapter_EstimateGas_InvalidAddresses(t *testing.T) {
+	adapter := NewAdapter(nil, newFakeKeyStore())
+
+	_, err := adapter.EstimateGas(context.Background(), chainport.Transaction{From: "not-an-address", To: "0x1234567890123456789012345678901234567890"})
+	if err == nil {
+		t.Fatal("expected error for invalid from address, got nil")
+	}
+}
+
+func TestAdapter_SendTransaction(t *testing.T) {
+	srv := newMockRPCServer(t, map[string]interface{}{
+		"eth_getTransactionCount": fmt.Sprintf("0x%x", 3),
+		"eth_gasPrice":            fmt.Sprintf("0x%x", 1_000_000_000),
+		"eth_estimateGas":         fmt.Sprintf("0x%x", 21000),
+		"eth_chainId":             fmt.Sprintf("0x%x", 5042002),
+		"eth_sendRawTransaction":  "0x0000000000000000000000000000000000000000000000000000000000000000",
+	})
+	defer srv.Close()
+
+	client, err := rpc.Dial(context.Background(), srv.URL)
+	if err != nil {
+		t.Fatalf("Dial: %v", err)
+	}
+	defer client.Close()
+
+	keys := newFakeKeyStore()
+	adapter := NewAdapter(client, keys)
+
+	from, err := adapter.CreateWallet(context.Background())
+	if err != nil {
+		t.Fatalf("CreateWallet: %v", err)
+	}
+
+	txHash, err := adapter.SendTransaction(context.Background(), chainport.Transaction{
+		From:  from,
+		To:    "0x0987654321098765432109876543210987654321",
+		Value: "1000",
+	})
+	if err != nil {
+		t.Fatalf("SendTransaction: %v", err)
+	}
+	if txHash == "" {
+		t.Fatal("SendTransaction returned an empty tx hash")
+	}
+}
+
+func TestAdapter_SendTransaction_NoKeyStored(t *testing.T) {
+	adapter := NewAdapter(nil, newFakeKeyStore())
+
+	_, err := adapter.SendTransaction(context.Background(), chainport.Transaction{
+		From:  "0x1234567890123456789012345678901234567890",
+		To:    "0x0987654321098765432109876543210987654321",
+		Value: "1000",
+	})
+	if err == nil {
+		t.Fatal("expected error for address with no stored key, got nil")
 	}
 }
