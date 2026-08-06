@@ -122,6 +122,8 @@ Arquivos/diretórios já existentes (bootstrap) marcados ✅; a criar marcados �
 | `modules/chains/arc/rpc/client.go` | E2/E3 | ✅ Sprint 1 |
 | `modules/chains/arc/rpc/client_test.go` | E2/E3 | ✅ Sprint 1 |
 | `docs/networks/arc.md` | E2/E3 | ✅ Sprint 1 |
+| `modules/contracts/chain.go` (`KeyStore`) | E2 | ✅ Sprint 2 |
+| `modules/platform/internal/infra/keystore/memory.go` | E2 | ✅ Sprint 2 (interino — ver TR-008) |
 | `modules/platform/internal/usecase/transaction.go` | E3 | ⬜ Sprint 3 |
 | `modules/platform/internal/domain/identity.go` | E1 | ⬜ Sprint 4 |
 | `modules/platform/internal/adapter/rest/middleware/auth.go` | E1 | ⬜ Sprint 4 |
@@ -152,12 +154,14 @@ Monorepo `go.work`, módulo `contracts` (porta `chainport.Adapter`), `platform` 
 
 Decisão de dependência (go-ethereum, geração local de chave) registrada em [TR-007](tradeoffs.md#tr-007-cliente-rpc-da-arc-via-go-ethereum-e-geração-local-de-chave-em-vez-de-circle-wallets).
 
-### Sprint 2 — Wallet API real (8 SP)
+### Sprint 2 — Wallet API real (8 SP) ✅ concluído
 
 | ID | Tarefa | Epic | FR | SP | Depende de | Critério de aceite |
 |---|---|---|---|---|---|---|
-| T-104 | Implementar `CreateWallet` real no Adapter ARC (geração de keypair/endereço) | E2 | FR-002 | 5 | T-102 | `POST /v1/arc/wallets` retorna endereço válido e reproduzível a partir da chave gerada |
-| T-105 | Implementar `GetBalance` real via cliente RPC | E2 | FR-002 | 3 | T-102 | `GET /v1/arc/wallets/{address}/balance` retorna saldo real de um endereço de teste na testnet ARC |
+| T-104 | Implementar `CreateWallet` real no Adapter ARC (geração de keypair/endereço) | E2 | FR-002 | 5 | T-102 | ✅ `POST /v1/arc/wallets` retorna endereço válido (testado contra a testnet real: `0xFbB49CAfEDdFDbFCd5F6FDF6E5D289eAc3b7055B`); chave persistida via `chainport.KeyStore` |
+| T-105 | Implementar `GetBalance` real via cliente RPC | E2 | FR-002 | 3 | T-102 | ✅ `GET /v1/arc/wallets/{address}/balance` retorna saldo real (testado contra a testnet: endereço de burn `0x000...dead` → `6550183353001544053029` USDC, unidade menor) |
+
+Decisão de custódia (KeyStore custodial, em memória por ora) registrada em [TR-008](tradeoffs.md#tr-008-aureon-é-custodial-guarda-as-chaves-privadas-via-chainportkeystore-começando-com-storage-em-memória). `chainport.Adapter` ganhou `KeyStore` como porta adicional — atualizar a nota de arquitetura se necessário.
 
 ### Sprint 3 — Transaction API real (8 SP)
 

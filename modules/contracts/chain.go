@@ -31,3 +31,12 @@ type Adapter interface {
 	SendTransaction(ctx context.Context, tx Transaction) (TxHash, error)
 	EstimateGas(ctx context.Context, tx Transaction) (uint64, error)
 }
+
+// KeyStore lets an Adapter persist and retrieve the private key material it
+// generates in CreateWallet, so a later SendTransaction can sign on behalf
+// of that address. Aureon is custodial by design (see TR-007/TR-008 in
+// docs/tradeoffs.md): the caller never handles private keys directly.
+type KeyStore interface {
+	Put(ctx context.Context, address Address, privateKey []byte) error
+	Get(ctx context.Context, address Address) ([]byte, error)
+}

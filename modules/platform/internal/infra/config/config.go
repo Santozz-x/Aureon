@@ -2,14 +2,23 @@ package config
 
 import "os"
 
+const defaultArcRPCURL = "https://rpc.testnet.arc.io"
+
 type Config struct {
-	HTTPAddr string
+	HTTPAddr  string
+	ArcRPCURL string
 }
 
 func Load() Config {
-	addr := os.Getenv("AUREON_HTTP_ADDR")
-	if addr == "" {
-		addr = ":8080"
+	return Config{
+		HTTPAddr:  getenv("AUREON_HTTP_ADDR", ":8080"),
+		ArcRPCURL: getenv("AUREON_ARC_RPC_URL", defaultArcRPCURL),
 	}
-	return Config{HTTPAddr: addr}
+}
+
+func getenv(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
 }

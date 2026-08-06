@@ -59,3 +59,10 @@ Registra decisões de arquitetura e escopo que tinham alternativas reais, e o qu
 - **Alternativas consideradas:** cliente JSON-RPC feito à mão (`net/http` + `encoding/json`) sem depender de `go-ethereum`; usar Circle Wallets para custódia de chaves.
 - **Sacrifício:** `go-ethereum` é uma dependência pesada (dezenas de pacotes transitivos, incluindo criptografia e otel) só para falar HTTP JSON-RPC e assinar transações. Em troca, evita reimplementar assinatura EIP-155/RLP à mão — risco alto de acertar errado em código que mexe com chaves privadas. Não usar Circle Wallets significa que o Aureon é responsável por proteger as chaves geradas (custódia própria), não a Circle.
 - **Reavaliar quando:** se o tamanho do binário/build da `chains/arc` se tornar um problema real; ou se, ao adicionar a segunda chain EVM, ficar claro que vale a pena extrair um pacote `chains/evmshared` para não duplicar o wrapper do go-ethereum por módulo.
+
+## TR-008: Aureon é custodial (guarda as chaves privadas) via `chainport.KeyStore`, começando com storage em memória
+- **Fase:** build
+- **Decisão:** `CreateWallet` gera a chave e a persiste via um `chainport.KeyStore` injetado no `Adapter` (não retornado ao chamador). A implementação inicial (`modules/platform/internal/infra/keystore.Memory`) guarda tudo em um `map` em memória — some ao reiniciar o Gateway.
+- **Alternativas consideradas:** modelo não-custodial (devolver a chave uma vez na resposta da API e nunca guardar nada), que exigiria mudar `SendTransaction` para aceitar uma transação já assinada pelo chamador.
+- **Sacrifício:** o modelo custodial coloca a Aureon como responsável por proteger chaves privadas — uma responsabilidade de segurança real, não delegável. E o storage em memória atual **não é seguro para produção**: qualquer restart derruba as carteiras, e não há criptografia em repouso.
+- **Reavaliar quando:** obrigatório antes de qualquer deploy fora de testnet — a Sprint 5 (Postgres) precisa entregar um `KeyStore` persistente e criptografado em repouso (KMS/envelope encryption), não só trocar o backend de storage por texto plano em outro lugar.

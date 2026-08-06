@@ -56,6 +56,12 @@ Todos os módulos (`modules/contracts`, `modules/platform`, `modules/chains/arc`
 
 Manual, via construtores (`NewWalletService(adapters)`, `NewWalletHandler(service)`, etc.), sem biblioteca de DI. O único ponto de wiring é `cmd/*/main.go`. Reavaliar apenas se o número de dependências por serviço crescer a ponto de tornar o wiring manual repetitivo demais (ver [tradeoffs.md](tradeoffs.md)).
 
+## Custódia de chaves privadas (`chainport.KeyStore`)
+
+`CreateWallet` gera a chave e a entrega para um `chainport.KeyStore` injetado no `Adapter` — o chamador da API nunca vê a chave privada. A Aureon é **custodial por design**: isso é o que permite `createWallet()` e `transfer()` funcionarem como dois passos independentes (como o charter descreve nas tools MCP), sem o chamador gerenciar chaves. A implementação atual (`internal/infra/keystore.Memory`) é **apenas em memória** — não usar com fundos reais até a Sprint 5 trazer um store persistente e criptografado. Ver [TR-008](tradeoffs.md#tr-008-aureon-é-custodial-guarda-as-chaves-privadas-via-chainportkeystore-começando-com-storage-em-memória).
+
+Assim como `chainport.Adapter`, o `KeyStore` é uma porta genérica (não específica da ARC): a mesma implementação em `platform/internal/infra/keystore` é injetada em qualquer adapter de chain, evitando duplicar lógica de armazenamento de chave por módulo.
+
 ## Erros e HTTP status
 
 Nesta fase inicial, qualquer erro vindo do `usecase` é traduzido para `400 Bad Request` pelos handlers REST. Isso é propositalmente simplificado — a Sprint de Auth/erros (ver [implementation-plan.md](implementation-plan.md)) deve introduzir um tipo de erro de aplicação com código semântico (`not_found`, `unsupported_network`, `upstream_unavailable`, ...) mapeado para status HTTP corretos.
