@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jeielsantos/aureon/modules/platform/internal/domain"
-	"github.com/jeielsantos/aureon/modules/platform/internal/infra/db"
+	"github.com/Santozz-x/Aureon/modules/platform/internal/domain"
+	"github.com/Santozz-x/Aureon/modules/platform/internal/infra/db"
 )
 
 func testDB(t *testing.T) *sql.DB {

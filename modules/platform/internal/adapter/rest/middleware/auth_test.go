@@ -6,8 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/jeielsantos/aureon/modules/platform/internal/infra/apikeystore"
-	"github.com/jeielsantos/aureon/modules/platform/internal/usecase"
+	"github.com/Santozz-x/Aureon/modules/platform/internal/infra/apikeystore"
+	"github.com/Santozz-x/Aureon/modules/platform/internal/usecase"
 )
 
 func TestRequireAPIKey_MissingHeader(t *testing.T) {

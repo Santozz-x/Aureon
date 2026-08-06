@@ -28,6 +28,13 @@ vet:
 fmt:
 	gofmt -s -w .
 
+.PHONY: lint
+lint:
+	@for m in $(MODULES); do \
+		echo "==> linting $$m"; \
+		(cd $$m && golangci-lint run ./...) || exit 1; \
+	done
+
 .PHONY: tidy
 tidy:
 	@for m in $(MODULES); do \

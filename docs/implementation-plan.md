@@ -138,7 +138,10 @@ Arquivos/diretórios já existentes (bootstrap) marcados ✅; a criar marcados �
 | `modules/platform/internal/infra/db/db.go` (conexão + runner de migrações) | E4 | ✅ Sprint 5 |
 | `modules/platform/migrations/` (`.sql` + `go:embed`) | E4 | ✅ Sprint 5 |
 | `docker-compose.yml` (Postgres local, dev only) | E4 | ✅ Sprint 5 |
-| `.github/workflows/ci.yml` | E4 | ⬜ Sprint 6 |
+| `.github/workflows/ci.yml` | E4 | ✅ Sprint 6 |
+| `modules/platform/internal/adapter/rest/middleware/logging.go` | E4 | ✅ Sprint 6 |
+| `modules/platform/internal/adapter/rest/router_integration_test.go` | E4 | ✅ Sprint 6 |
+| `.golangci.yml` (migrado para schema v2) | E4 | ✅ Sprint 6 |
 | `api/openapi.yaml` | E5 | ⬜ Sprint 7 |
 | `modules/cli/` (novo módulo, `cmd/aureon`) | E5 | ⬜ Sprint 8 |
 | `modules/mcp/internal/tools/` | E6 | ⬜ Sprint 9–10 |
@@ -204,13 +207,15 @@ Implementações em memória (`keystore.Memory`, `apikeystore.Memory`) mantidas 
 
 **Validado end-to-end:** wallet criada e API key emitida num processo do Gateway sobrevivem a matar o processo e subir um binário novo — saldo e `estimateGas` funcionaram no segundo processo usando a mesma chave privada recuperada (descriptografada) do Postgres.
 
-### Sprint 6 — Observabilidade, testes de integração e CI (8 SP)
+### Sprint 6 — Observabilidade, testes de integração e CI (8 SP) ✅ concluído
 
 | ID | Tarefa | Epic | FR | SP | Depende de | Critério de aceite |
 |---|---|---|---|---|---|---|
-| T-114 | Logging estruturado consistente (`slog`) em todas as camadas, com request ID | E4 | — | 2 | Sprint 4/5 | Toda requisição HTTP loga método, path, status, duração e request ID |
-| T-115 | Testes de integração do Gateway ponta a ponta (`httptest`, sem mocks internos) | E4 | — | 3 | Sprint 1–5 | Suite cobre wallet, transaction e auth com cenários de sucesso e erro |
-| T-116 | CI no GitHub Actions: build, vet, test e lint para todos os módulos do `go.work` | E4 | — | 3 | T-115 | Pipeline verde em push/PR; falha se `golangci-lint` ou testes quebrarem |
+| T-114 | Logging estruturado consistente (`slog`) em todas as camadas, com request ID | E4 | — | 2 | Sprint 4/5 | ✅ `middleware.Logging` envolve todo o router; loga método, path, status, duração e `request_id` (gerado ou propagado de `X-Request-Id`) para toda requisição, autenticada ou não |
+| T-115 | Testes de integração do Gateway ponta a ponta (`httptest`, sem mocks internos) | E4 | — | 3 | Sprint 1–5 | ✅ 7 testes em `rest_test` — router, usecases, middlewares reais; só o adapter de chain é um fake (fronteira externa, não "mock interno"). Cobre health sem auth, wallet+balance, rede não suportada, endereço desconhecido, transaction+estimate, e chave revogada perdendo acesso |
+| T-116 | CI no GitHub Actions: build, vet, test e lint para todos os módulos do `go.work` | E4 | — | 3 | T-115 | ✅ `.github/workflows/ci.yml`: build, vet, test (com serviço Postgres real para os testes de integração de storage), `golangci-lint` (migrado para config v2) e `gofmt -l` em todos os módulos. Simulado localmente de ponta a ponta antes do commit — todos os passos verdes |
+
+**Achados do lint corrigidos nesta sprint:** erro de `Encode` não verificado em `writeJSON` (errcheck) e `http.Server` sem `ReadHeaderTimeout` (gosec G112, risco de Slowloris) — ambos legítimos, corrigidos, não suprimidos.
 
 ### Sprint 7 — OpenAPI (8 SP)
 

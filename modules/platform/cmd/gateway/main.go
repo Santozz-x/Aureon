@@ -10,16 +10,16 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/jeielsantos/aureon/modules/chains/arc"
-	arcrpc "github.com/jeielsantos/aureon/modules/chains/arc/rpc"
-	chainport "github.com/jeielsantos/aureon/modules/contracts"
-	"github.com/jeielsantos/aureon/modules/platform/internal/adapter/rest"
-	"github.com/jeielsantos/aureon/modules/platform/internal/adapter/rest/middleware"
-	"github.com/jeielsantos/aureon/modules/platform/internal/infra/apikeystore"
-	"github.com/jeielsantos/aureon/modules/platform/internal/infra/config"
-	"github.com/jeielsantos/aureon/modules/platform/internal/infra/db"
-	"github.com/jeielsantos/aureon/modules/platform/internal/infra/keystore"
-	"github.com/jeielsantos/aureon/modules/platform/internal/usecase"
+	"github.com/Santozz-x/Aureon/modules/chains/arc"
+	arcrpc "github.com/Santozz-x/Aureon/modules/chains/arc/rpc"
+	chainport "github.com/Santozz-x/Aureon/modules/contracts"
+	"github.com/Santozz-x/Aureon/modules/platform/internal/adapter/rest"
+	"github.com/Santozz-x/Aureon/modules/platform/internal/adapter/rest/middleware"
+	"github.com/Santozz-x/Aureon/modules/platform/internal/infra/apikeystore"
+	"github.com/Santozz-x/Aureon/modules/platform/internal/infra/config"
+	"github.com/Santozz-x/Aureon/modules/platform/internal/infra/db"
+	"github.com/Santozz-x/Aureon/modules/platform/internal/infra/keystore"
+	"github.com/Santozz-x/Aureon/modules/platform/internal/usecase"
 )
 
 func main() {
@@ -74,10 +74,12 @@ func main() {
 	protect := middleware.RequireAPIKey(apiKeyService)
 
 	router := rest.NewRouter(walletHandler, transactionHandler, apiKeyHandler, protect)
+	handler := middleware.Logging(logger)(router)
 
 	srv := &http.Server{
-		Addr:    cfg.HTTPAddr,
-		Handler: router,
+		Addr:              cfg.HTTPAddr,
+		Handler:           handler,
+		ReadHeaderTimeout: 10 * time.Second,
 	}
 
 	go func() {

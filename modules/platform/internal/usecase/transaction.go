@@ -3,7 +3,7 @@ package usecase
 import (
 	"context"
 
-	chainport "github.com/jeielsantos/aureon/modules/contracts"
+	chainport "github.com/Santozz-x/Aureon/modules/contracts"
 )
 
 type TransactionService struct {

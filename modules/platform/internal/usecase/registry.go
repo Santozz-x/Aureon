@@ -3,7 +3,7 @@ package usecase
 import (
 	"fmt"
 
-	chainport "github.com/jeielsantos/aureon/modules/contracts"
+	chainport "github.com/Santozz-x/Aureon/modules/contracts"
 )
 
 type adapterRegistry struct {

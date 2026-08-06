@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"io"
 
-	chainport "github.com/jeielsantos/aureon/modules/contracts"
+	chainport "github.com/Santozz-x/Aureon/modules/contracts"
 )
 
 // Postgres is a chainport.KeyStore backed by PostgreSQL. Private key

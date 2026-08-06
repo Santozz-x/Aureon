@@ -1,5 +1,7 @@
 # Aureon
 
+[![CI](https://github.com/Santozz-x/Aureon/actions/workflows/ci.yml/badge.svg)](https://github.com/Santozz-x/Aureon/actions/workflows/ci.yml)
+
 **Building the Infrastructure Behind Web3.**
 
 Aureon é uma plataforma open source de infraestrutura Web3, multi-chain, API-first e AI-native. Veja o [CHARTER.md](CHARTER.md) para a visão completa, princípios e roadmap do projeto.

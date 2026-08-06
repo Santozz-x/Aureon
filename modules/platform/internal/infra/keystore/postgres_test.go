@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	chainport "github.com/jeielsantos/aureon/modules/contracts"
-	"github.com/jeielsantos/aureon/modules/platform/internal/infra/db"
+	chainport "github.com/Santozz-x/Aureon/modules/contracts"
+	"github.com/Santozz-x/Aureon/modules/platform/internal/infra/db"
 )
 
 // testDB connects to a real Postgres and applies migrations. Skipped

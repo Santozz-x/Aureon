@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	chainport "github.com/jeielsantos/aureon/modules/contracts"
+	chainport "github.com/Santozz-x/Aureon/modules/contracts"
 )
 
 // Memory is an in-process, non-persistent chainport.KeyStore. Keys are lost

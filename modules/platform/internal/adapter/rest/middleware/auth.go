@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/jeielsantos/aureon/modules/platform/internal/domain"
-	"github.com/jeielsantos/aureon/modules/platform/internal/usecase"
+	"github.com/Santozz-x/Aureon/modules/platform/internal/domain"
+	"github.com/Santozz-x/Aureon/modules/platform/internal/usecase"
 )
 
 type contextKey int

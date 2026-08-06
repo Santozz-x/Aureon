@@ -12,8 +12,8 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 
-	"github.com/jeielsantos/aureon/modules/chains/arc/rpc"
-	chainport "github.com/jeielsantos/aureon/modules/contracts"
+	"github.com/Santozz-x/Aureon/modules/chains/arc/rpc"
+	chainport "github.com/Santozz-x/Aureon/modules/contracts"
 )
 
 type Adapter struct {

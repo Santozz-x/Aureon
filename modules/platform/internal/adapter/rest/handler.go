@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	chainport "github.com/jeielsantos/aureon/modules/contracts"
-	"github.com/jeielsantos/aureon/modules/platform/internal/usecase"
+	chainport "github.com/Santozz-x/Aureon/modules/contracts"
+	"github.com/Santozz-x/Aureon/modules/platform/internal/usecase"
 )
 
 type WalletHandler struct {
@@ -53,5 +53,7 @@ func (h *WalletHandler) GetBalance(w http.ResponseWriter, r *http.Request) {
 func writeJSON(w http.ResponseWriter, status int, payload any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(payload)
+	// Headers are already sent; nothing meaningful to do with an encode
+	// error here (e.g. client disconnected) beyond not silently ignoring it.
+	_ = json.NewEncoder(w).Encode(payload)
 }

@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/jeielsantos/aureon/modules/platform/internal/domain"
-	"github.com/jeielsantos/aureon/modules/platform/internal/usecase"
+	"github.com/Santozz-x/Aureon/modules/platform/internal/domain"
+	"github.com/Santozz-x/Aureon/modules/platform/internal/usecase"
 )
 
 type APIKeyHandler struct {

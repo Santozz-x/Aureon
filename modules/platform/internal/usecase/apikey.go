@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jeielsantos/aureon/modules/platform/internal/domain"
+	"github.com/Santozz-x/Aureon/modules/platform/internal/domain"
 )
 
 var ErrInvalidAPIKey = errors.New("usecase: invalid or revoked api key")

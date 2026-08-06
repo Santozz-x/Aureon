@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jeielsantos/aureon/modules/platform/internal/domain"
+	"github.com/Santozz-x/Aureon/modules/platform/internal/domain"
 )
 
 // Memory is an in-process, non-persistent store. Keys are lost on

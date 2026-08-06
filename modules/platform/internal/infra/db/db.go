@@ -14,7 +14,7 @@ import (
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	_ "github.com/jackc/pgx/v5/stdlib"
 
-	"github.com/jeielsantos/aureon/modules/platform/migrations"
+	"github.com/Santozz-x/Aureon/modules/platform/migrations"
 )
 
 func Open(ctx context.Context, databaseURL string) (*sql.DB, error) {

@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jeielsantos/aureon/modules/platform/internal/domain"
+	"github.com/Santozz-x/Aureon/modules/platform/internal/domain"
 )
 
 type fakeAPIKeyStore struct {

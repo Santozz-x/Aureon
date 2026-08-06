@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
-	chainport "github.com/jeielsantos/aureon/modules/contracts"
-	"github.com/jeielsantos/aureon/modules/platform/internal/usecase"
+	chainport "github.com/Santozz-x/Aureon/modules/contracts"
+	"github.com/Santozz-x/Aureon/modules/platform/internal/usecase"
 )
 
 type TransactionHandler struct {
