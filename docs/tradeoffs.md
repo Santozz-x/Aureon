@@ -81,3 +81,10 @@ Registra decisões de arquitetura e escopo que tinham alternativas reais, e o qu
 - **Alternativas consideradas:** integração real com KMS (AWS KMS, GCP KMS, HashiCorp Vault) fazendo envelope encryption de verdade (chave mestra nunca sai do KMS, só uma data key derivada por operação).
 - **Sacrifício:** uma env var é um alvo de exfiltração mais fácil que um KMS — qualquer processo/pessoa com acesso ao ambiente de execução do Gateway consegue ler a chave mestra e descriptografar todas as carteiras. Isso é uma melhoria real sobre texto plano (TR-008), mas não é o padrão que "Security by Design" pede para produção com fundos reais.
 - **Reavaliar quando:** obrigatório antes de qualquer deploy com fundos reais fora de testnet — substituir a leitura direta da env var por um cliente de KMS (a interface `chainport.KeyStore` não muda, só a implementação de `NewPostgres`/como ela obtém a chave de criptografia).
+
+## TR-011: Uma versão só para o monorepo inteiro (não semver por módulo)
+- **Fase:** release
+- **Decisão:** O primeiro release (`v0.1.0`) é uma tag única no repositório, cobrindo todos os 5 módulos juntos. Nenhum módulo (`modules/contracts`, `modules/platform`, `modules/chains/arc`, `modules/mcp`, `sdk/go`) recebe uma tag própria (`modules/platform/v0.1.0`, etc.) ainda.
+- **Alternativas consideradas:** tags por módulo desde já, como o ecossistema Go recomenda para monorepos multi-módulo (necessário no dia em que algum módulo for `go get`-ável de fora do repo com garantias de compatibilidade próprias).
+- **Sacrifício:** um consumidor externo do `sdk/go` (o único módulo pensado para consumo de terceiros) não consegue fixar uma versão dele independente do resto do monorepo — hoje ele evolui junto com tudo.
+- **Reavaliar quando:** no dia em que `sdk/go` (ou qualquer outro módulo) tiver um consumidor externo real — nesse ponto, adotar tags `modules/<nome>/vX.Y.Z` só para esse módulo, sem precisar mudar os outros.

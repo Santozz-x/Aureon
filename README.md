@@ -6,7 +6,7 @@
 
 Aureon é uma plataforma open source de infraestrutura Web3, multi-chain, API-first e AI-native. Veja o [CHARTER.md](CHARTER.md) para a visão completa, princípios e roadmap do projeto.
 
-> Status: **Draft** — em bootstrap inicial.
+> Status: **v0.1.0** — núcleo (Wallet + Transaction API na ARC Network) funcionando, Fase 1 do [roadmap](docs/implementation-plan.md) em andamento. Ver [CHANGELOG.md](CHANGELOG.md).
 
 ## Estrutura do repositório
 
@@ -34,6 +34,7 @@ Cada blockchain suportada é um módulo Go independente em `modules/chains/`, im
 | [docs/implementation-plan.md](docs/implementation-plan.md) | Requisitos funcionais, épicos e tarefas por sprint |
 | [docs/tradeoffs.md](docs/tradeoffs.md) | Decision journal — o que foi escolhido e o que foi sacrificado |
 | [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | Como contribuir |
+| [CHANGELOG.md](CHANGELOG.md) | O que mudou em cada versão |
 
 ## Quick start
 
