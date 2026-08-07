@@ -119,16 +119,29 @@ Arquivos/diretórios já existentes (bootstrap) marcados ✅; a criar marcados �
 | `modules/platform/internal/infra/config/config.go` | E1 | ✅ |
 | `modules/platform/cmd/gateway/main.go` | E1 | ✅ |
 | `modules/chains/arc/adapter.go` | E2/E3 | ✅ (stubs, sem RPC real) |
-| `modules/chains/arc/rpc/client.go` | E2/E3 | ⬜ Sprint 1 |
-| `modules/chains/arc/rpc/client_test.go` | E2/E3 | ⬜ Sprint 1 |
-| `modules/platform/internal/usecase/transaction.go` | E3 | ⬜ Sprint 3 |
-| `modules/platform/internal/domain/identity.go` | E1 | ⬜ Sprint 4 |
-| `modules/platform/internal/adapter/rest/middleware/auth.go` | E1 | ⬜ Sprint 4 |
-| `modules/platform/internal/usecase/apikey.go` | E1 | ⬜ Sprint 4 |
-| `modules/platform/internal/adapter/repository/` (interfaces) | E4 | ⬜ Sprint 5 |
-| `modules/platform/internal/adapter/repository/postgres/` | E4 | ⬜ Sprint 5 |
-| `modules/platform/migrations/` | E4 | ⬜ Sprint 5 |
-| `.github/workflows/ci.yml` | E4 | ⬜ Sprint 6 |
+| `modules/chains/arc/rpc/client.go` | E2/E3 | ✅ Sprint 1 |
+| `modules/chains/arc/rpc/client_test.go` | E2/E3 | ✅ Sprint 1 |
+| `docs/networks/arc.md` | E2/E3 | ✅ Sprint 1 |
+| `modules/contracts/chain.go` (`KeyStore`) | E2 | ✅ Sprint 2 |
+| `modules/platform/internal/infra/keystore/memory.go` | E2 | ✅ Sprint 2 (interino — ver TR-008) |
+| `modules/platform/internal/usecase/transaction.go` | E3 | ✅ Sprint 3 |
+| `modules/platform/internal/usecase/registry.go` (resolver de adapter compartilhado) | E2/E3 | ✅ Sprint 3 |
+| `modules/platform/internal/adapter/rest/transaction.go` | E3 | ✅ Sprint 3 |
+| `modules/chains/arc/rpc/client.go` (`PendingNonceAt`, `SuggestGasPrice`) | E3 | ✅ Sprint 3 |
+| `modules/platform/internal/domain/identity.go` | E1 | ✅ Sprint 4 |
+| `modules/platform/internal/adapter/rest/middleware/auth.go` | E1 | ✅ Sprint 4 |
+| `modules/platform/internal/usecase/apikey.go` | E1 | ✅ Sprint 4 |
+| `modules/platform/internal/infra/apikeystore/memory.go` | E1 | ✅ Sprint 4 (interino — ver TR-009) |
+| `modules/platform/internal/adapter/rest/apikey.go` | E1 | ✅ Sprint 4 |
+| `modules/platform/internal/infra/keystore/postgres.go` | E4 | ✅ Sprint 5 (Postgres real, não `adapter/repository/` como planejado originalmente — ver nota abaixo) |
+| `modules/platform/internal/infra/apikeystore/postgres.go` | E4 | ✅ Sprint 5 |
+| `modules/platform/internal/infra/db/db.go` (conexão + runner de migrações) | E4 | ✅ Sprint 5 |
+| `modules/platform/migrations/` (`.sql` + `go:embed`) | E4 | ✅ Sprint 5 |
+| `docker-compose.yml` (Postgres local, dev only) | E4 | ✅ Sprint 5 |
+| `.github/workflows/ci.yml` | E4 | ✅ Sprint 6 |
+| `modules/platform/internal/adapter/rest/middleware/logging.go` | E4 | ✅ Sprint 6 |
+| `modules/platform/internal/adapter/rest/router_integration_test.go` | E4 | ✅ Sprint 6 |
+| `.golangci.yml` (migrado para schema v2) | E4 | ✅ Sprint 6 |
 | `api/openapi.yaml` | E5 | ⬜ Sprint 7 |
 | `modules/cli/` (novo módulo, `cmd/aureon`) | E5 | ⬜ Sprint 8 |
 | `modules/mcp/internal/tools/` | E6 | ⬜ Sprint 9–10 |
@@ -141,52 +154,68 @@ Arquivos/diretórios já existentes (bootstrap) marcados ✅; a criar marcados �
 
 Monorepo `go.work`, módulo `contracts` (porta `chainport.Adapter`), `platform` com Gateway HTTP mínimo (`/health`, criação/consulta de wallet via use case), `chains/arc` com adapter stub (métodos retornam "not implemented"), `mcp` skeleton, `sdk/go` com client HTTP mínimo. Build, vet e smoke test validados. Charter, README, LICENSE e este conjunto de docs commitados.
 
-### Sprint 1 — Cliente RPC da ARC Network (8 SP)
+### Sprint 1 — Cliente RPC da ARC Network (8 SP) ✅ concluído
 
 | ID | Tarefa | Epic | FR | SP | Depende de | Critério de aceite |
 |---|---|---|---|---|---|---|
-| T-101 | Pesquisar e documentar a API RPC/HTTP da ARC Network (endpoints, autenticação, formatos) | E2 | FR-029 | 2 | — | Nota técnica em `docs/networks/arc.md` cobrindo endpoints necessários para wallet/balance/tx/gas |
-| T-102 | Implementar cliente HTTP/RPC genérico em `modules/chains/arc/rpc` | E2/E3 | FR-029 | 3 | T-101 | Cliente compila, expõe métodos tipados, trata erros HTTP/timeout |
-| T-103 | Testes do cliente RPC com `httptest` (mock do servidor ARC) | E2/E3 | FR-029 | 3 | T-102 | `go test ./...` cobre casos de sucesso e erro (timeout, 4xx, 5xx) |
+| T-101 | Pesquisar e documentar a API RPC/HTTP da ARC Network (endpoints, autenticação, formatos) | E2 | FR-029 | 2 | — | ✅ Nota técnica em [`docs/networks/arc.md`](networks/arc.md): Arc é EVM-compatível (JSON-RPC `eth_*`), chain ID `5042002` (testnet), gas nativo em USDC, RPC configurável via `AUREON_ARC_RPC_URL` |
+| T-102 | Implementar cliente HTTP/RPC genérico em `modules/chains/arc/rpc` | E2/E3 | FR-029 | 3 | T-101 | ✅ `Client` (via `go-ethereum`/`ethclient`) expõe `ChainID`, `BalanceAt`, `EstimateGas`, `SendTransaction`; erros do transporte/upstream sempre encapsulados com `%w` |
+| T-103 | Testes do cliente RPC com `httptest` (mock do servidor ARC) | E2/E3 | FR-029 | 3 | T-102 | ✅ `go test ./...` cobre `ChainID`, `BalanceAt` (sucesso e erro upstream), `EstimateGas` (sucesso e erro upstream) |
 
-### Sprint 2 — Wallet API real (8 SP)
+Decisão de dependência (go-ethereum, geração local de chave) registrada em [TR-007](tradeoffs.md#tr-007-cliente-rpc-da-arc-via-go-ethereum-e-geração-local-de-chave-em-vez-de-circle-wallets).
 
-| ID | Tarefa | Epic | FR | SP | Depende de | Critério de aceite |
-|---|---|---|---|---|---|---|
-| T-104 | Implementar `CreateWallet` real no Adapter ARC (geração de keypair/endereço) | E2 | FR-002 | 5 | T-102 | `POST /v1/arc/wallets` retorna endereço válido e reproduzível a partir da chave gerada |
-| T-105 | Implementar `GetBalance` real via cliente RPC | E2 | FR-002 | 3 | T-102 | `GET /v1/arc/wallets/{address}/balance` retorna saldo real de um endereço de teste na testnet ARC |
-
-### Sprint 3 — Transaction API real (8 SP)
+### Sprint 2 — Wallet API real (8 SP) ✅ concluído
 
 | ID | Tarefa | Epic | FR | SP | Depende de | Critério de aceite |
 |---|---|---|---|---|---|---|
-| T-106 | Implementar `SendTransaction` no Adapter ARC | E3 | FR-003 | 5 | T-104 | Envia transação assinada para a testnet ARC e retorna `TxHash` válido |
-| T-107 | Implementar `EstimateGas` no Adapter ARC | E3 | FR-003 | 3 | T-102 | Retorna estimativa de gas consistente com a testnet ARC para uma tx de teste |
-| — | Expor endpoints `POST /v1/{network}/transactions` e `POST /v1/{network}/transactions/estimate` no `usecase`/`rest` | E3 | FR-001, FR-003 | (incluso acima) | T-106, T-107 | Endpoints cobertos por teste de integração |
+| T-104 | Implementar `CreateWallet` real no Adapter ARC (geração de keypair/endereço) | E2 | FR-002 | 5 | T-102 | ✅ `POST /v1/arc/wallets` retorna endereço válido (testado contra a testnet real: `0xFbB49CAfEDdFDbFCd5F6FDF6E5D289eAc3b7055B`); chave persistida via `chainport.KeyStore` |
+| T-105 | Implementar `GetBalance` real via cliente RPC | E2 | FR-002 | 3 | T-102 | ✅ `GET /v1/arc/wallets/{address}/balance` retorna saldo real (testado contra a testnet: endereço de burn `0x000...dead` → `6550183353001544053029` USDC, unidade menor) |
 
-### Sprint 4 — Identity, Auth e API Keys (8 SP)
+Decisão de custódia (KeyStore custodial, em memória por ora) registrada em [TR-008](tradeoffs.md#tr-008-aureon-é-custodial-guarda-as-chaves-privadas-via-chainportkeystore-começando-com-storage-em-memória). `chainport.Adapter` ganhou `KeyStore` como porta adicional — atualizar a nota de arquitetura se necessário.
 
-| ID | Tarefa | Epic | FR | SP | Depende de | Critério de aceite |
-|---|---|---|---|---|---|---|
-| T-108 | Modelar domínio de Identity (conta de desenvolvedor) e API Key (`internal/domain/identity.go`) | E1 | FR-008, FR-011 | 2 | — | Tipos definidos, sem persistência ainda |
-| T-109 | Middleware de autenticação por API Key no Gateway | E1 | FR-009 | 3 | T-108 | Requisição sem header `Authorization` válido recebe `401`; com chave válida, passa |
-| T-110 | Endpoint de emissão/revogação de API Keys (storage em memória por ora) | E1 | FR-010, FR-011 | 3 | T-108 | `POST /v1/apikeys` cria, `DELETE /v1/apikeys/{id}` revoga; chave revogada falha no middleware |
-
-### Sprint 5 — Persistência (8 SP)
+### Sprint 3 — Transaction API real (8 SP) ✅ concluído
 
 | ID | Tarefa | Epic | FR | SP | Depende de | Critério de aceite |
 |---|---|---|---|---|---|---|
-| T-111 | Definir interfaces de repositório (`Store`) para Identity/API Keys, desacopladas de storage concreto | E4 | — | 2 | T-108 | Interfaces em `internal/usecase` ou pacote `port`, sem dependência de driver de DB |
-| T-112 | Implementar repositório Postgres + migrações | E4 | — | 5 | T-111 | `make test` sobe Postgres via testcontainers (ou docker-compose) e valida CRUD |
-| T-113 | Configuração de conexão via env (`AUREON_DATABASE_URL`) | E4 | — | 1 | T-112 | Gateway falha rápido e com mensagem clara se a env estiver ausente/incorreta |
+| T-106 | Implementar `SendTransaction` no Adapter ARC | E3 | FR-003 | 5 | T-104 | ✅ Monta, assina (EIP-155/legacy tx via go-ethereum) e envia via `eth_sendRawTransaction`; testado contra a testnet real — pipeline completo (nonce, gas price, chain id, assinatura, broadcast) confirmado, rejeitado corretamente por saldo zero (carteira nova sem fundos de testnet) |
+| T-107 | Implementar `EstimateGas` no Adapter ARC | E3 | FR-003 | 3 | T-102 | ✅ Testado contra a testnet real (mesma ressalva de saldo zero acima) e com testes unitários (mock RPC) |
+| — | Expor endpoints `POST /v1/{network}/transactions` e `POST /v1/{network}/transactions/estimate` no `usecase`/`rest` | E3 | FR-001, FR-003 | (incluso acima) | T-106, T-107 | ✅ `usecase.TransactionService` + `rest.TransactionHandler`, roteados no Gateway |
 
-### Sprint 6 — Observabilidade, testes de integração e CI (8 SP)
+**Nota para a próxima sessão de testes manuais:** para validar um `SendTransaction` com sucesso (não só a rejeição por saldo), a carteira `from` precisa de USDC de testnet — usar o faucet oficial da Arc (ver [docs/networks/arc.md](networks/arc.md)) antes de repetir o smoke test.
+
+### Sprint 4 — Identity, Auth e API Keys (8 SP) ✅ concluído
 
 | ID | Tarefa | Epic | FR | SP | Depende de | Critério de aceite |
 |---|---|---|---|---|---|---|
-| T-114 | Logging estruturado consistente (`slog`) em todas as camadas, com request ID | E4 | — | 2 | Sprint 4/5 | Toda requisição HTTP loga método, path, status, duração e request ID |
-| T-115 | Testes de integração do Gateway ponta a ponta (`httptest`, sem mocks internos) | E4 | — | 3 | Sprint 1–5 | Suite cobre wallet, transaction e auth com cenários de sucesso e erro |
-| T-116 | CI no GitHub Actions: build, vet, test e lint para todos os módulos do `go.work` | E4 | — | 3 | T-115 | Pipeline verde em push/PR; falha se `golangci-lint` ou testes quebrarem |
+| T-108 | Modelar domínio de Identity (conta de desenvolvedor) e API Key (`internal/domain/identity.go`) | E1 | FR-008, FR-011 | 2 | — | ✅ `domain.Account`, `domain.APIKey` (guarda só `SecretHash`, nunca o segredo em texto plano) |
+| T-109 | Middleware de autenticação por API Key no Gateway | E1 | FR-009 | 3 | T-108 | ✅ `middleware.RequireAPIKey` — validado manualmente: sem header → `401`, header inválido → `401`, chave válida → `200` e chega no handler |
+| T-110 | Endpoint de emissão/revogação de API Keys (storage em memória por ora) | E1 | FR-010, FR-011 | 3 | T-108 | ✅ `POST /v1/apikeys` cria (retorna o segredo uma única vez), `DELETE /v1/apikeys/{id}` revoga; validado manualmente que a chave revogada falha no middleware (`401`) |
+
+Decisões registradas em [TR-009](tradeoffs.md#tr-009-api-keys--hash-sha-256-não-bcryptargon2-storage-em-memória-emissão-sem-autenticação-prévia): hash SHA-256 (correto para tokens de alta entropia, não senha), storage em memória (mesmo padrão do TR-008), e `POST /v1/apikeys` propositalmente público por enquanto — **isso precisa mudar antes de qualquer deploy real**.
+
+### Sprint 5 — Persistência (8 SP) ✅ concluído
+
+| ID | Tarefa | Epic | FR | SP | Depende de | Critério de aceite |
+|---|---|---|---|---|---|---|
+| T-111 | Definir interfaces de repositório (`Store`) para Identity/API Keys, desacopladas de storage concreto | E4 | — | 2 | T-108 | ✅ `usecase.APIKeyStore` (já existia desde a Sprint 4) e `chainport.KeyStore` — ambas sem dependência de driver de DB |
+| T-112 | Implementar repositório Postgres + migrações | E4 | — | 5 | T-111 | ✅ `infra/keystore.Postgres` (AES-256-GCM em repouso) e `infra/apikeystore.Postgres`; migrações em `modules/platform/migrations/` (embutidas via `go:embed`, aplicadas automaticamente no boot via `golang-migrate`); testes de integração contra Postgres real (`TEST_DATABASE_URL`, gated/skip se ausente) |
+| T-113 | Configuração de conexão via env (`AUREON_DATABASE_URL`) | E4 | — | 1 | T-112 | ✅ `AUREON_DATABASE_URL` e `AUREON_KEYSTORE_ENCRYPTION_KEY` obrigatórias — Gateway falha rápido com mensagem clara se ausentes/inválidas (testado) |
+
+Implementações em memória (`keystore.Memory`, `apikeystore.Memory`) mantidas apenas para testes unitários — o Gateway não as usa mais. Decisão da chave de criptografia via env var (não KMS) registrada em [TR-010](tradeoffs.md#tr-010-criptografia-em-repouso-com-chave-de-aplicação-aes-256-gcm-em-vez-de-kms), com ressalva explícita: **não usar em deploy com fundos reais** até virar KMS.
+
+**Nota de estrutura:** o plano original previa um pacote genérico `internal/adapter/repository/postgres/`. Na implementação, ficou mais idiomático manter `Postgres` no mesmo pacote que seu par `Memory` (`infra/keystore/{memory,postgres}.go`, `infra/apikeystore/{memory,postgres}.go`) — mesma interface, implementações alternativas lado a lado, sem introduzir uma camada genérica extra.
+
+**Validado end-to-end:** wallet criada e API key emitida num processo do Gateway sobrevivem a matar o processo e subir um binário novo — saldo e `estimateGas` funcionaram no segundo processo usando a mesma chave privada recuperada (descriptografada) do Postgres.
+
+### Sprint 6 — Observabilidade, testes de integração e CI (8 SP) ✅ concluído
+
+| ID | Tarefa | Epic | FR | SP | Depende de | Critério de aceite |
+|---|---|---|---|---|---|---|
+| T-114 | Logging estruturado consistente (`slog`) em todas as camadas, com request ID | E4 | — | 2 | Sprint 4/5 | ✅ `middleware.Logging` envolve todo o router; loga método, path, status, duração e `request_id` (gerado ou propagado de `X-Request-Id`) para toda requisição, autenticada ou não |
+| T-115 | Testes de integração do Gateway ponta a ponta (`httptest`, sem mocks internos) | E4 | — | 3 | Sprint 1–5 | ✅ 7 testes em `rest_test` — router, usecases, middlewares reais; só o adapter de chain é um fake (fronteira externa, não "mock interno"). Cobre health sem auth, wallet+balance, rede não suportada, endereço desconhecido, transaction+estimate, e chave revogada perdendo acesso |
+| T-116 | CI no GitHub Actions: build, vet, test e lint para todos os módulos do `go.work` | E4 | — | 3 | T-115 | ✅ `.github/workflows/ci.yml`: build, vet, test (com serviço Postgres real para os testes de integração de storage), `golangci-lint` (migrado para config v2) e `gofmt -l` em todos os módulos. Simulado localmente de ponta a ponta antes do commit — todos os passos verdes |
+
+**Achados do lint corrigidos nesta sprint:** erro de `Encode` não verificado em `writeJSON` (errcheck) e `http.Server` sem `ReadHeaderTimeout` (gosec G112, risco de Slowloris) — ambos legítimos, corrigidos, não suprimidos.
 
 ### Sprint 7 — OpenAPI (8 SP)
 

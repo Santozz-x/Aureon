@@ -10,28 +10,76 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/jeielsantos/aureon/modules/chains/arc"
-	chainport "github.com/jeielsantos/aureon/modules/contracts"
-	"github.com/jeielsantos/aureon/modules/platform/internal/adapter/rest"
-	"github.com/jeielsantos/aureon/modules/platform/internal/infra/config"
-	"github.com/jeielsantos/aureon/modules/platform/internal/usecase"
+	"github.com/Santozz-x/Aureon/modules/chains/arc"
+	arcrpc "github.com/Santozz-x/Aureon/modules/chains/arc/rpc"
+	chainport "github.com/Santozz-x/Aureon/modules/contracts"
+	"github.com/Santozz-x/Aureon/modules/platform/internal/adapter/rest"
+	"github.com/Santozz-x/Aureon/modules/platform/internal/adapter/rest/middleware"
+	"github.com/Santozz-x/Aureon/modules/platform/internal/infra/apikeystore"
+	"github.com/Santozz-x/Aureon/modules/platform/internal/infra/config"
+	"github.com/Santozz-x/Aureon/modules/platform/internal/infra/db"
+	"github.com/Santozz-x/Aureon/modules/platform/internal/infra/keystore"
+	"github.com/Santozz-x/Aureon/modules/platform/internal/usecase"
 )
 
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	cfg := config.Load()
+
+	cfg, err := config.Load()
+	if err != nil {
+		logger.Error("invalid configuration", "error", err)
+		os.Exit(1)
+	}
+
+	bootCtx, cancelBoot := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancelBoot()
+
+	arcClient, err := arcrpc.Dial(bootCtx, cfg.ArcRPCURL)
+	if err != nil {
+		logger.Error("failed to connect to ARC Network RPC", "url", cfg.ArcRPCURL, "error", err)
+		os.Exit(1)
+	}
+	defer arcClient.Close()
+
+	sqlDB, err := db.Open(bootCtx, cfg.DatabaseURL)
+	if err != nil {
+		logger.Error("failed to connect to database", "error", err)
+		os.Exit(1)
+	}
+	defer sqlDB.Close()
+
+	if err := db.Migrate(sqlDB); err != nil {
+		logger.Error("failed to apply database migrations", "error", err)
+		os.Exit(1)
+	}
+
+	keys, err := keystore.NewPostgres(sqlDB, cfg.KeystoreEncryptionKey)
+	if err != nil {
+		logger.Error("failed to init key store", "error", err)
+		os.Exit(1)
+	}
 
 	adapters := map[chainport.Network]chainport.Adapter{
-		chainport.Network("arc"): arc.NewAdapter(),
+		chainport.Network("arc"): arc.NewAdapter(arcClient, keys),
 	}
 
 	walletService := usecase.NewWalletService(adapters)
 	walletHandler := rest.NewWalletHandler(walletService)
-	router := rest.NewRouter(walletHandler)
+
+	transactionService := usecase.NewTransactionService(adapters)
+	transactionHandler := rest.NewTransactionHandler(transactionService)
+
+	apiKeyService := usecase.NewAPIKeyService(apikeystore.NewPostgres(sqlDB))
+	apiKeyHandler := rest.NewAPIKeyHandler(apiKeyService)
+	protect := middleware.RequireAPIKey(apiKeyService)
+
+	router := rest.NewRouter(walletHandler, transactionHandler, apiKeyHandler, protect)
+	handler := middleware.Logging(logger)(router)
 
 	srv := &http.Server{
-		Addr:    cfg.HTTPAddr,
-		Handler: router,
+		Addr:              cfg.HTTPAddr,
+		Handler:           handler,
+		ReadHeaderTimeout: 10 * time.Second,
 	}
 
 	go func() {

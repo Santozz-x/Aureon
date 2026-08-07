@@ -52,3 +52,32 @@ Registra decisões de arquitetura e escopo que tinham alternativas reais, e o qu
 - **Alternativas consideradas:** nenhuma capacidade explícita informada pelo usuário; poderia ter assumido tempo integral (~13-20 SP/semana).
 - **Sacrifício:** se a capacidade real for maior, os sprints vão parecer subdimensionados e podem ser combinados; se for menor, vão estourar.
 - **Reavaliar quando:** após os 2 primeiros sprints reais executados — ajustar a capacidade com base na velocidade observada.
+
+## TR-007: Cliente RPC da ARC via go-ethereum e geração local de chave, em vez de Circle Wallets
+- **Fase:** build
+- **Decisão:** `modules/chains/arc/rpc` usa `github.com/ethereum/go-ethereum` (`ethclient`, `core/types`, pacote `ethereum`) para falar com o JSON-RPC padrão da Arc, e `CreateWallet` vai gerar um par de chaves secp256k1 localmente em vez de usar o produto Circle Wallets (custódia gerenciada pela Circle, recomendado na doc oficial da Arc).
+- **Alternativas consideradas:** cliente JSON-RPC feito à mão (`net/http` + `encoding/json`) sem depender de `go-ethereum`; usar Circle Wallets para custódia de chaves.
+- **Sacrifício:** `go-ethereum` é uma dependência pesada (dezenas de pacotes transitivos, incluindo criptografia e otel) só para falar HTTP JSON-RPC e assinar transações. Em troca, evita reimplementar assinatura EIP-155/RLP à mão — risco alto de acertar errado em código que mexe com chaves privadas. Não usar Circle Wallets significa que o Aureon é responsável por proteger as chaves geradas (custódia própria), não a Circle.
+- **Reavaliar quando:** se o tamanho do binário/build da `chains/arc` se tornar um problema real; ou se, ao adicionar a segunda chain EVM, ficar claro que vale a pena extrair um pacote `chains/evmshared` para não duplicar o wrapper do go-ethereum por módulo.
+
+## TR-008: Aureon é custodial (guarda as chaves privadas) via `chainport.KeyStore`, começando com storage em memória
+- **Fase:** build
+- **Decisão:** `CreateWallet` gera a chave e a persiste via um `chainport.KeyStore` injetado no `Adapter` (não retornado ao chamador). A implementação inicial (`modules/platform/internal/infra/keystore.Memory`) guarda tudo em um `map` em memória — some ao reiniciar o Gateway.
+- **Alternativas consideradas:** modelo não-custodial (devolver a chave uma vez na resposta da API e nunca guardar nada), que exigiria mudar `SendTransaction` para aceitar uma transação já assinada pelo chamador.
+- **Sacrifício:** o modelo custodial coloca a Aureon como responsável por proteger chaves privadas — uma responsabilidade de segurança real, não delegável. E o storage em memória atual **não é seguro para produção**: qualquer restart derruba as carteiras, e não há criptografia em repouso.
+- **Status:** ✅ resolvido na Sprint 5 — `infra/keystore.Postgres` persiste as chaves criptografadas com AES-256-GCM (ver [TR-010](#tr-010-criptografia-em-repouso-com-chave-de-aplicação-aes-256-gcm-em-vez-de-kms)). `Memory` continua existindo só para uso em testes.
+
+## TR-009: API Keys — hash SHA-256 (não bcrypt/argon2), storage em memória, emissão sem autenticação prévia
+- **Fase:** build
+- **Decisão:** `usecase.APIKeyService` guarda apenas `SecretHash = sha256(secret)`, nunca o segredo em texto plano; o segredo (`aur_...`, 24 bytes aleatórios) só existe na resposta de `POST /v1/apikeys`, uma única vez. O storage (`infra/apikeystore.Memory`) é em memória, mesmo padrão do TR-008. `POST /v1/apikeys` e `DELETE /v1/apikeys/{id}` não passam pelo próprio middleware `RequireAPIKey`.
+- **Alternativas consideradas:** hash lento (bcrypt/argon2) como se fosse senha de usuário; exigir autenticação para emitir a primeira API key.
+- **Sacrifício:** `POST /v1/apikeys` é hoje um endpoint público — qualquer um pode emitir uma API key para qualquer `account_id` arbitrário (string livre, sem validação contra uma conta real). Isso é aceitável só porque não há nada de valor real atrás da autenticação ainda (sem persistência, sem fundos de produção). SHA-256 é a escolha correta (não uma concessão) para tokens de alta entropia — diferente de senha de usuário, não há espaço de busca de baixa entropia para um hash lento proteger.
+- **Status:** storage resolvido na Sprint 5 (`infra/apikeystore.Postgres`). `POST /v1/apikeys` **continua público** — isso não muda até um FR de Identity/signup real existir.
+- **Reavaliar quando:** antes de qualquer deploy real — `POST /v1/apikeys` precisa ficar atrás de um fluxo real de Identity/signup (criar `Account` de verdade, autenticado), não aceitar `account_id` livre. Rastrear como um FR novo antes da Fase 2.
+
+## TR-010: Criptografia em repouso com chave de aplicação (AES-256-GCM), em vez de KMS
+- **Fase:** build
+- **Decisão:** `infra/keystore.Postgres` criptografa cada chave privada com AES-256-GCM antes de gravar no Postgres. A chave mestra (32 bytes) vem de `AUREON_KEYSTORE_ENCRYPTION_KEY`, uma variável de ambiente, não de um serviço de KMS/HSM.
+- **Alternativas consideradas:** integração real com KMS (AWS KMS, GCP KMS, HashiCorp Vault) fazendo envelope encryption de verdade (chave mestra nunca sai do KMS, só uma data key derivada por operação).
+- **Sacrifício:** uma env var é um alvo de exfiltração mais fácil que um KMS — qualquer processo/pessoa com acesso ao ambiente de execução do Gateway consegue ler a chave mestra e descriptografar todas as carteiras. Isso é uma melhoria real sobre texto plano (TR-008), mas não é o padrão que "Security by Design" pede para produção com fundos reais.
+- **Reavaliar quando:** obrigatório antes de qualquer deploy com fundos reais fora de testnet — substituir a leitura direta da env var por um cliente de KMS (a interface `chainport.KeyStore` não muda, só a implementação de `NewPostgres`/como ela obtém a chave de criptografia).

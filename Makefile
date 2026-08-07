@@ -1,11 +1,14 @@
 MODULES := modules/contracts modules/platform modules/chains/arc modules/mcp sdk/go
+BIN_DIR := $(CURDIR)/bin
 
 .PHONY: build
 build:
-	@for m in $(MODULES); do \
-		echo "==> building $$m"; \
-		(cd $$m && go build ./...) || exit 1; \
-	done
+	@mkdir -p $(BIN_DIR)
+	@echo "==> building modules/contracts"; (cd modules/contracts && go build ./...) || exit 1
+	@echo "==> building modules/chains/arc"; (cd modules/chains/arc && go build ./...) || exit 1
+	@echo "==> building sdk/go"; (cd sdk/go && go build ./...) || exit 1
+	@echo "==> building modules/platform"; (cd modules/platform && go build -o $(BIN_DIR)/ ./...) || exit 1
+	@echo "==> building modules/mcp"; (cd modules/mcp && go build -o $(BIN_DIR)/ ./...) || exit 1
 
 .PHONY: test
 test:
@@ -25,6 +28,13 @@ vet:
 fmt:
 	gofmt -s -w .
 
+.PHONY: lint
+lint:
+	@for m in $(MODULES); do \
+		echo "==> linting $$m"; \
+		(cd $$m && golangci-lint run ./...) || exit 1; \
+	done
+
 .PHONY: tidy
 tidy:
 	@for m in $(MODULES); do \
@@ -39,3 +49,11 @@ run-gateway:
 .PHONY: run-mcp
 run-mcp:
 	cd modules/mcp && go run ./cmd/mcp-server
+
+.PHONY: db-up
+db-up:
+	docker compose up -d postgres
+
+.PHONY: db-down
+db-down:
+	docker compose down

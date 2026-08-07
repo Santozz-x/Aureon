@@ -2,25 +2,16 @@ package usecase
 
 import (
 	"context"
-	"fmt"
 
-	chainport "github.com/jeielsantos/aureon/modules/contracts"
+	chainport "github.com/Santozz-x/Aureon/modules/contracts"
 )
 
 type WalletService struct {
-	adapters map[chainport.Network]chainport.Adapter
+	adapterRegistry
 }
 
 func NewWalletService(adapters map[chainport.Network]chainport.Adapter) *WalletService {
-	return &WalletService{adapters: adapters}
-}
-
-func (s *WalletService) adapter(network chainport.Network) (chainport.Adapter, error) {
-	adapter, ok := s.adapters[network]
-	if !ok {
-		return nil, fmt.Errorf("usecase: unsupported network %q", network)
-	}
-	return adapter, nil
+	return &WalletService{adapterRegistry: newAdapterRegistry(adapters)}
 }
 
 func (s *WalletService) CreateWallet(ctx context.Context, network chainport.Network) (chainport.Address, error) {

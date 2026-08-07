@@ -56,6 +56,12 @@ Todos os módulos (`modules/contracts`, `modules/platform`, `modules/chains/arc`
 
 Manual, via construtores (`NewWalletService(adapters)`, `NewWalletHandler(service)`, etc.), sem biblioteca de DI. O único ponto de wiring é `cmd/*/main.go`. Reavaliar apenas se o número de dependências por serviço crescer a ponto de tornar o wiring manual repetitivo demais (ver [tradeoffs.md](tradeoffs.md)).
 
+## Custódia de chaves privadas (`chainport.KeyStore`)
+
+`CreateWallet` gera a chave e a entrega para um `chainport.KeyStore` injetado no `Adapter` — o chamador da API nunca vê a chave privada. A Aureon é **custodial por design**: isso é o que permite `createWallet()` e `transfer()` funcionarem como dois passos independentes (como o charter descreve nas tools MCP), sem o chamador gerenciar chaves. Desde a Sprint 5, o Gateway usa `internal/infra/keystore.Postgres`, que criptografa cada chave com AES-256-GCM antes de gravar — a chave mestra de criptografia vem de `AUREON_KEYSTORE_ENCRYPTION_KEY` (env var), não de um KMS real ainda (ver [TR-010](tradeoffs.md#tr-010-criptografia-em-repouso-com-chave-de-aplicação-aes-256-gcm-em-vez-de-kms)). `keystore.Memory` continua existindo só para testes unitários. Ver [TR-008](tradeoffs.md#tr-008-aureon-é-custodial-guarda-as-chaves-privadas-via-chainportkeystore-começando-com-storage-em-memória).
+
+Assim como `chainport.Adapter`, o `KeyStore` é uma porta genérica (não específica da ARC): a mesma implementação em `platform/internal/infra/keystore` é injetada em qualquer adapter de chain, evitando duplicar lógica de armazenamento de chave por módulo.
+
 ## Erros e HTTP status
 
 Nesta fase inicial, qualquer erro vindo do `usecase` é traduzido para `400 Bad Request` pelos handlers REST. Isso é propositalmente simplificado — a Sprint de Auth/erros (ver [implementation-plan.md](implementation-plan.md)) deve introduzir um tipo de erro de aplicação com código semântico (`not_found`, `unsupported_network`, `upstream_unavailable`, ...) mapeado para status HTTP corretos.

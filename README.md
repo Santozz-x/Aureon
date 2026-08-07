@@ -1,5 +1,7 @@
 # Aureon
 
+[![CI](https://github.com/Santozz-x/Aureon/actions/workflows/ci.yml/badge.svg)](https://github.com/Santozz-x/Aureon/actions/workflows/ci.yml)
+
 **Building the Infrastructure Behind Web3.**
 
 Aureon é uma plataforma open source de infraestrutura Web3, multi-chain, API-first e AI-native. Veja o [CHARTER.md](CHARTER.md) para a visão completa, princípios e roadmap do projeto.
@@ -35,16 +37,22 @@ Cada blockchain suportada é um módulo Go independente em `modules/chains/`, im
 
 ## Quick start
 
-Requer Go 1.26+.
+Requer Go 1.26+ e Docker (para o Postgres local).
 
 ```bash
 go work sync
+make db-up          # sobe um Postgres local via docker compose (dev only)
+
+export AUREON_DATABASE_URL="postgres://aureon:aureon@localhost:5432/aureon?sslmode=disable"
+export AUREON_KEYSTORE_ENCRYPTION_KEY="$(openssl rand -hex 32)"
 
 make build          # compila todos os módulos
 make vet            # go vet em todos os módulos
-make run-gateway    # sobe o API Gateway em :8080
+make run-gateway    # sobe o API Gateway em :8080 (aplica as migrações automaticamente)
 make run-mcp        # sobe o skeleton do servidor MCP
 ```
+
+O Gateway falha ao subir se `AUREON_DATABASE_URL` ou `AUREON_KEYSTORE_ENCRYPTION_KEY` (32 bytes em hex) não estiverem definidas — ambas guardam dados sensíveis (chaves privadas de carteira, criptografadas em repouso com AES-256-GCM; hashes de API key) e não têm valor padrão de propósito. Ver [docs/tradeoffs.md](docs/tradeoffs.md#tr-008-aureon-é-custodial-guarda-as-chaves-privadas-via-chainportkeystore-começando-com-storage-em-memória) para as ressalvas de segurança ainda pendentes antes de qualquer deploy real.
 
 ## Licença
 
